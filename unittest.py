@@ -6,8 +6,11 @@ import torch as pt
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset
+import torch_geometric as tg
 import matplotlib.pyplot as plt
 from config import get_cfg
+from dyn_graph_learner import DynGraphLearner
+from utils import get_T_repetition, get_x_split
 
 cfg = get_cfg()
 cfg.batch_size = 5
@@ -15,69 +18,53 @@ cfg.act_fn = 'relu'
 cfg.n_core_layers = 4
 cfg.device = 'cpu'
 cfg.output_act_fn = 'softmax'
-cfg.n_neurons = 20
+cfg.n_hidden = 7
+cfg.n_gru_layer = 1
+cfg.n_neurons = 200
 cfg.tau = 0.1
 cfg.T = 100
 cfg.len_window = 10
 cfg.stride = 5
-cfg.itcn_d = 5
+cfg.itcn_d = 4
 cfg.ebd_d = 3
-
-
-
 x = pt.rand(cfg.batch_size, cfg.n_neurons, cfg.T)
-# print(x.shape)
+T_repetition = get_T_repetition(cfg)
+cfg.T_repetition = T_repetition
+dyn_graph_learner = DynGraphLearner(cfg)
 
-T = (cfg.T - 2*(cfg.len_window - 1) - 1)//(cfg.stride+1)
-print(T)
+x_split = get_x_split(cfg, x)
+node_features, edge_indices, edge_weights = dyn_graph_learner(x_split)
+print(node_features.shape)
+print(edge_indices)
+print(edge_weights.shape)
+# gru = pt.nn.GRU(cfg.n_neurons, cfg.n_hidden, cfg.n_gru_layer, batch_first=True)
+# gru_output, gru_hidden = gru(pt.transpose(node_features, 1, 2).reshape(cfg.batch_size*cfg.n_neurons, T, cfg.n_neurons))
+# print(gru_output.shape)
 
-x_cprs = pt.stack([x[:, :, t*cfg.stride:t*cfg.stride+cfg.len_window] for t in range(T)], -1)
-x_cprs = pt.transpose(x_cprs, 2, 3)
-# print(x_cprs.shape)
+# gcnconv = tg.nn.GCNConv(3, 2)
+# gcnconv(gru_output, edge_indices, edge_weights)
 
-input_layer = pt.nn.Linear(cfg.len_window, cfg.itcn_d)
-x_cprs = input_layer(x_cprs)
-output_fc = pt.nn.Sequential(pt.nn.Linear(cfg.itcn_d, cfg.itcn_d), pt.nn.ReLU(), pt.nn.Linear(cfg.itcn_d, cfg.ebd_d))
-x_cprs = output_fc(x_cprs)
-# print(x_cprs.shape)
+# print(x_split.shape)
+# x_split = pt.transpose(x_split, 1, 3)
+# print(x_split.shape)
+# class dilated_inception(nn.Module):
+#     def __init__(self, cin, cout, dilation_factor=2):
+#         super(dilated_inception, self).__init__()
+#         self.tconv = nn.ModuleList()
+#         self.kernel_set = [2,3,6,7]
+#         cout = int(cout/len(self.kernel_set))
+#         for kern in self.kernel_set:
+#             self.tconv.append(nn.Conv2d(cin,cout,(1,kern),dilation=(1,dilation_factor)))
 
+#     def forward(self,input):
+#         x = []
+#         for i in range(len(self.kernel_set)):
+#             x.append(self.tconv[i](input))
+#         for i in range(len(self.kernel_set)):
+#             x[i] = x[iin    ][...,-x[-1].size(3):]
+#         x = torch.cat(x,dim=1)
+#         return x
 
-
-def spatial_attention(cfg, x_cprs):
-    x_spatial_attn = pt.mean(x_cprs, -1)
-    x_spatial_attn = pt.transpose(x_spatial_attn, 1, 2)
-    n_neurons_ebd = int(cfg.tau*cfg.n_neurons)
-    output_fc = pt.nn.Sequential(pt.nn.Linear(cfg.n_neurons, n_neurons_ebd, bias=False),
-                                 pt.nn.ReLU(),
-                                 pt.nn.Linear(n_neurons_ebd, cfg.n_neurons, bias=False),
-                                 pt.nn.Sigmoid())
-    spatial_attn = output_fc(x_spatial_attn)
-    spatial_attn = pt.transpose(spatial_attn.unsqueeze(-1), 1, 2)
-    return spatial_attn
-
-spatial_attn = spatial_attention(cfg, x_cprs)
-
-x_cprs = spatial_attn * x_cprs
-print(x_cprs.shape)
-# b, V, T, K_E
-
-# def temporal_attention(cfg, x_cprs):
-temporal_attn = pt.transpose(x_cprs, 2, 3)
-temporal_attn = temporal_attn.view(cfg.batch_size, cfg.n_neurons*cfg.ebd_d, T)
-temporal_attn = pt.mean(temporal_attn, 1)
-T_ebd = int(cfg.tau*T)
-output_fc = pt.nn.Sequential(pt.nn.Linear(T, T_ebd, bias=False),
-                             pt.nn.ReLU(),
-                             pt.nn.Linear(T_ebd, T, bias=False),
-                             pt.nn.Sigmoid())
-temporal_attn = output_fc(temporal_attn)
-temporal_attn = pt.transpose(temporal_attn.view(cfg.batch_size, 1, 1, T), 2, 3)
-
-x_cprs = temporal_attn * x_cprs
-print(x_cprs.shape)
-
-x_cprs = F.softmax(x_cprs.reshape(cfg.batch_size, T, cfg.n_neurons, cfg.ebd_d), -1)
-print(x_cprs.shape)
-
-adjacency_matrix = pt.matmul(x_cprs, pt.transpose(x_cprs, 2, 3))
-
+# itcn = dilated_inception(4, 4)
+# x_split = itcn(x_split)
+# print(x_split.shape)
