@@ -47,5 +47,4 @@ def temporal_attention():
 
 def graph_contruction():
 
-def dynamic_graph_net():
-    x = split(x)
+def sparify():
