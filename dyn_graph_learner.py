@@ -29,4 +29,4 @@ class DynGraphLearner(pt.nn.Module):
         adjacency_matrix = construct_graph(x_ebd)
         sparse_adjacency = self.sparsify(adjacency_matrix)
         edge_indices, edge_weights = get_coo(sparse_adjacency)
-        return node_features, edge_indices, edge_weights
+        return node_features, sparse_adjacency, edge_indices, edge_weights

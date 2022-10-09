@@ -15,7 +15,7 @@ class DynGraphClassifier(pt.nn.Module):
                  cfg: int) -> None:
 
         super().__init__()
-        self.gru = pt.nn.GRU(cfg.n_neurons, cfg.n_hidden, cfg.n_gru_layer, batch_first=True)
+        self.gru = pt.nn.GRU(cfg.n_neurons, cfg.n_hidden, cfg.n_gru_layers, batch_first=True)
         self.gcnconv = tg.nn.GCNConv(3, 2)
         gru_output, gru_hidden = gru(pt.transpose(node_features, 1, 2).reshape(cfg.batch_size*cfg.n_neurons, T, cfg.n_neurons))
         gcnconv(gru_output, edge_indices, edge_weights)

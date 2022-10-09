@@ -19,47 +19,6 @@ def get_node_features(x_split: pt.Tensor) -> pt.Tensor:
     node_features = x_split_cov/pt.matmul(x_split_std, pt.transpose(x_split_std, 2, 3))
     return node_features
 
-class RegionEmbedder(pt.nn.Module):
-
-    """
-    Core region embedder
-    """
-
-    def __init__(self,
-                 cfg: int,
-                 act_fn: Optional[str] = 'relu',
-                 bias: Optional[bool] = True) -> None:
-
-        super().__init__()
-        self.input_layer = pt.nn.Linear(cfg.len_window, cfg.itcn_d)
-        self.dilated_inception = 0
-        self.output_fc = pt.nn.Sequential(pt.nn.Linear(cfg.itcn_d, cfg.itcn_d), pt.nn.ReLU(), pt.nn.Linear(cfg.itcn_d, cfg.ebd_d))
-        
-    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
-        x_split = self.input_layer(x_split)
-        x_split = self.output_fc(x_split)
-        return x_split
-
-class ITCN(pt.nn.Module):
-
-    """
-    Inception TCN
-    """
-
-    def __init__(self,
-                 cfg: int,
-                 n_layers: int) -> None:
-
-        super().__init__()
-        self.cfg = cfg
-        self.core = pt.nn.Sequential(*[InceptionTC(cfg, 2**i) for i in range(n_layers)])
-
-    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
-        x_split = x_split.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.itcn_d, self.cfg.T_repetition)
-        x_split = self.core(x_split)
-        x_split = x_split.reshape(self.cfg.batch_size, self.cfg.itcn_d, self.cfg.n_neurons, self.cfg.T_repetition)
-        return x_split
-
 class InceptionTC(pt.nn.Module):
 
     """
@@ -89,6 +48,48 @@ class InceptionTC(pt.nn.Module):
         x_cat = pt.cat(x_cat, 1)
         x_out = pt.relu(self.bn(x_cat))
         return x_out
+        
+class ITCN(pt.nn.Module):
+
+    """
+    Inception TCN
+    """
+
+    def __init__(self,
+                 cfg: int,
+                 n_layers: int) -> None:
+
+        super().__init__()
+        self.cfg = cfg
+        self.core = pt.nn.Sequential(*[InceptionTC(cfg, 2**i) for i in range(n_layers)])
+
+    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
+        x_split = x_split.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.itcn_d, self.cfg.T_repetition)
+        x_split = self.core(x_split)
+        x_split = x_split.reshape(self.cfg.batch_size, self.cfg.T_repetition, self.cfg.n_neurons, self.cfg.itcn_d)
+        return x_split
+
+class RegionEmbedder(pt.nn.Module):
+
+    """
+    Core region embedder
+    """
+
+    def __init__(self,
+                 cfg: int,
+                 act_fn: Optional[str] = 'relu',
+                 bias: Optional[bool] = True) -> None:
+
+        super().__init__()
+        self.input_layer = pt.nn.Linear(cfg.len_window, cfg.itcn_d)
+        self.dilated_inception = ITCN(cfg, cfg.n_itcn_layers)
+        self.output_fc = pt.nn.Sequential(pt.nn.Linear(cfg.itcn_d, cfg.itcn_d), pt.nn.ReLU(), pt.nn.Linear(cfg.itcn_d, cfg.ebd_d))
+        
+    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
+        x_split = self.input_layer(x_split)
+        x_split = self.dilated_inception(x_split)
+        x_split = self.output_fc(x_split)
+        return x_split
 
 class SpatialAttention(pt.nn.Module):
 
