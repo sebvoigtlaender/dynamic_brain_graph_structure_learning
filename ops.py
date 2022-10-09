@@ -8,9 +8,18 @@ def construct_graph(x_ebd: pt.Tensor) -> pt.Tensor:
     return adjacency_matrix
 
 def get_coo(adjacency_matrix: pt.Tensor) -> pt.Tensor:
-    edge_indices = (adjacency_matrix > 0).nonzero()
-    edge_weights = adjacency_matrix[adjacency_matrix > 0]
-    return edge_indices, edge_weights 
+    i = 0
+    edge_indices = pt.nonzero(adjacency_matrix > 0, as_tuple=False).T
+    edge_index_batch = pt.clone(edge_indices[1:3, :])
+    for t in range(len(edge_indices[0])):
+        if i < edge_indices[0][t]:
+            i = i + 1
+            n_nodes = max(edge_indices[1][t-1], edge_indices[2][t-1])+1
+            edge_index_batch[0][t:] = edge_index_batch[0][t:] + n_nodes
+            edge_index_batch[1][t:] = edge_index_batch[1][t:] + n_nodes
+    edge_attr_batch = adjacency_matrix[adjacency_matrix > 0].unsqueeze(-1)
+    batch = edge_indices[0]
+    return edge_index_batch, edge_attr_batch, batch
 
 def get_node_features(x_split: pt.Tensor) -> pt.Tensor:
     x_split_avg = pt.mean(x_split, -1, keepdim=True)

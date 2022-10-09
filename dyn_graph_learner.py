@@ -28,5 +28,5 @@ class DynGraphLearner(pt.nn.Module):
         x_ebd = x_temporal_attn * x_ebd
         adjacency_matrix = construct_graph(x_ebd)
         sparse_adjacency = self.sparsify(adjacency_matrix)
-        edge_indices, edge_weights = get_coo(sparse_adjacency)
-        return node_features, sparse_adjacency, edge_indices, edge_weights
+        edge_index_batch, edge_attr_batch, batch = get_coo(sparse_adjacency)
+        return node_features, sparse_adjacency, edge_index_batch, edge_attr_batch, batch

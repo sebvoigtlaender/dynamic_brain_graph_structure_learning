@@ -3,7 +3,7 @@ import torch as pt
 import torch_geometric as tg
 
 from ops import *
-from utils import get_T_repetition, get_x_split
+
 
 class DynGraphClassifier(pt.nn.Module):
 
@@ -12,13 +12,14 @@ class DynGraphClassifier(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int) -> None:
+                 cfg) -> None:
 
         super().__init__()
-        self.gru = pt.nn.GRU(cfg.n_neurons, cfg.n_hidden, cfg.n_gru_layers, batch_first=True)
-        self.gcnconv = tg.nn.GCNConv(3, 2)
-        gru_output, gru_hidden = gru(pt.transpose(node_features, 1, 2).reshape(cfg.batch_size*cfg.n_neurons, T, cfg.n_neurons))
-        gcnconv(gru_output, edge_indices, edge_weights)
+        self.gru = pt.nn.GRU(cfg.n_neurons, cfg.gcn_d, cfg.n_gru_layers, batch_first=True)
+        self.gcn = tg.nn.GCNConv(cfg.gcn_d, cfg.gcn_d, bias=False)
         
-    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
-        pass
+    def forward(self, node_features, edge_index_batch, edge_attr_batch, batch) -> pt.Tensor:
+        gru_input = pt.transpose(node_features, 1, 2).reshape(cfg.batch_size*cfg.n_neurons, cfg.T_repetition, cfg.n_neurons)
+        gru_output, gru_hidden = self.gru(gru_input)
+        gru_output = gru_output.reshape(cfg.batch_size*cfg.T_repetition*cfg.n_neurons, cfg.gcn_d)
+        out = self.gcn(gru_output, edge_index_batch, edge_attr_batch, batch)
