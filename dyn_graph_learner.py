@@ -7,13 +7,11 @@ from utils import get_T_repetition, get_x_split
 class DynGraphLearner(pt.nn.Module):
 
     """
-    Core region embedder
+    Dynamic graph learner
     """
 
     def __init__(self,
-                 cfg: int,
-                 act_fn: Optional[str] = 'relu',
-                 bias: Optional[bool] = True) -> None:
+                 cfg: int) -> None:
 
         super().__init__()
         self.ebd_region = RegionEmbedder(cfg)

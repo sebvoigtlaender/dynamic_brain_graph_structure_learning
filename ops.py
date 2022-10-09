@@ -40,6 +40,56 @@ class RegionEmbedder(pt.nn.Module):
         x_split = self.output_fc(x_split)
         return x_split
 
+class ITCN(pt.nn.Module):
+
+    """
+    Inception TCN
+    """
+
+    def __init__(self,
+                 cfg: int,
+                 n_layers: int) -> None:
+
+        super().__init__()
+        self.cfg = cfg
+        self.core = pt.nn.Sequential(*[InceptionTC(cfg, 2**i) for i in range(n_layers)])
+
+    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
+        x_split = x_split.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.itcn_d, self.cfg.T_repetition)
+        x_split = self.core(x_split)
+        x_split = x_split.reshape(self.cfg.batch_size, self.cfg.itcn_d, self.cfg.n_neurons, self.cfg.T_repetition)
+        return x_split
+
+class InceptionTC(pt.nn.Module):
+
+    """
+    Inception temporal convolution layer
+    """
+
+    def __init__(self,
+                 cfg: int,
+                 dilation: int) -> None:
+
+        super().__init__()
+        assert cfg.itcn_d%3 == 0
+        self.cfg = cfg
+        self.dilation = dilation
+        self.t_conv_0 = pt.nn.Conv1d(cfg.itcn_d, cfg.itcn_d//3, cfg.kernel_list[0], dilation=dilation, padding=(cfg.kernel_list[0]-1)*dilation)
+        self.t_conv_1 = pt.nn.Conv1d(cfg.itcn_d, cfg.itcn_d//3, cfg.kernel_list[1], dilation=dilation, padding=(cfg.kernel_list[1]-1)*dilation)
+        self.t_conv_2 = pt.nn.Conv1d(cfg.itcn_d, cfg.itcn_d//3, cfg.kernel_list[2], dilation=dilation, padding=(cfg.kernel_list[2]-1)*dilation)
+        self.bn = pt.nn.BatchNorm1d(cfg.itcn_d)
+
+    def clip_end(self, x: pt.Tensor, i: int) -> pt.Tensor:
+        padding = (self.cfg.kernel_list[i]-1)*self.dilation
+        x = x[:, :, :-padding].contiguous()
+        return x
+
+    def forward(self, x_split: pt.Tensor) -> pt.Tensor:
+        x_cat = [self.clip_end(self.t_conv_0(x_split), 0), self.clip_end(self.t_conv_1(x_split), 1), self.clip_end(self.t_conv_2(x_split), 2)]
+        x_cat = pt.cat(x_cat, 1)
+        x_out = pt.relu(self.bn(x_cat))
+        return x_out
+
 class SpatialAttention(pt.nn.Module):
 
     """
