@@ -1,5 +1,4 @@
 .DS_store
 .ipynb_checkpoints
 __pycache__
-unittest.py
 graph_test.py
