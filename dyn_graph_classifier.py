@@ -26,9 +26,9 @@ class DGCLayer(pt.nn.Module):
                 edge_attr_batch: pt.Tensor,
                 batch: pt.Tensor) -> pt.Tensor:
         gru_output, gru_hidden = self.gru(gru_input)
-        gru_output = gru_output.reshape(self.cfg.batch_size*self.cfg.T_repetition*self.cfg.n_neurons, self.cfg.gcn_d)
+        gru_output = gru_output.reshape(self.cfg.batch_size*self.cfg.t_repetition*self.cfg.n_neurons, self.cfg.gcn_d)
         out = self.gcn(gru_output, edge_index_batch, edge_attr_batch)
-        out = out.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.T_repetition, self.cfg.gcn_d)
+        out = out.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.t_repetition, self.cfg.gcn_d)
         return out
 
 class DynGraphClassifier(pt.nn.Module):
@@ -43,8 +43,8 @@ class DynGraphClassifier(pt.nn.Module):
         super().__init__()
         self.cfg = cfg
         self.dyn_graph_cls = pt.nn.ModuleList([DGCLayer(cfg, cfg.n_neurons),
-                                              DGCLayer(cfg, cfg.gcn_d),
-                                              DGCLayer(cfg, cfg.gcn_d)])
+                                               DGCLayer(cfg, cfg.gcn_d),
+                                               DGCLayer(cfg, cfg.gcn_d)])
         
     def forward(self,
                 node_features: pt.Tensor,

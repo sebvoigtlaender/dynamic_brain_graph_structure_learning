@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from config import get_cfg
 from dbgs_learner import DBGSLearner
-from utils import get_T_repetition
+from utils import get_t_repetition
 
 logging.get_absl_handler().python_handler.stream = sys.stdout
 logging.set_verbosity(logging.INFO)
@@ -25,7 +25,7 @@ class Trainer():
         """
 
         self.cfg = cfg
-        self.cfg.T_repetition = get_T_repetition(cfg)
+        self.cfg.t_repetition = get_t_repetition(cfg)
         self.model = DBGSLearner(cfg)
         if os.path.exists(cfg.state_dict_path):
             self.model.load_state_dict(pt.load(cfg.state_dict_path, map_location=f'{cfg.device}'))

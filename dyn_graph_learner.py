@@ -2,7 +2,7 @@ from typing import Optional
 import torch as pt
 
 from ops import *
-from utils import get_T_repetition, get_x_split
+from utils import get_t_repetition, get_x_split
 
 class DynGraphLearner(pt.nn.Module):
 

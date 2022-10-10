@@ -73,9 +73,9 @@ class ITCN(pt.nn.Module):
         self.core = pt.nn.Sequential(*[InceptionTC(cfg, 2**i) for i in range(n_layers)])
 
     def forward(self, x_split: pt.Tensor) -> pt.Tensor:
-        x_split = x_split.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.itcn_d, self.cfg.T_repetition)
+        x_split = x_split.reshape(self.cfg.batch_size*self.cfg.n_neurons, self.cfg.itcn_d, self.cfg.t_repetition)
         x_split = self.core(x_split)
-        x_split = x_split.reshape(self.cfg.batch_size, self.cfg.T_repetition, self.cfg.n_neurons, self.cfg.itcn_d)
+        x_split = x_split.reshape(self.cfg.batch_size, self.cfg.t_repetition, self.cfg.n_neurons, self.cfg.itcn_d)
         return x_split
 
 class RegionEmbedder(pt.nn.Module):
@@ -137,17 +137,17 @@ class TemporalAttention(pt.nn.Module):
 
         super().__init__()
         self.cfg = cfg
-        T_ebd = int(cfg.tau*cfg.T_repetition)
-        self.temporal_attn = pt.nn.Sequential(pt.nn.Linear(cfg.T_repetition, T_ebd, bias=False),
+        T_ebd = int(cfg.tau*cfg.t_repetition)
+        self.temporal_attn = pt.nn.Sequential(pt.nn.Linear(cfg.t_repetition, T_ebd, bias=False),
                                      pt.nn.ReLU(),
-                                     pt.nn.Linear(T_ebd, cfg.T_repetition, bias=False),
+                                     pt.nn.Linear(T_ebd, cfg.t_repetition, bias=False),
                                      pt.nn.Sigmoid())
         
     def forward(self, x_ebd: pt.Tensor) -> pt.Tensor:
-        x_temporal_attn = x_ebd.view(self.cfg.batch_size, self.cfg.T_repetition, self.cfg.n_neurons*self.cfg.ebd_d)
+        x_temporal_attn = x_ebd.view(self.cfg.batch_size, self.cfg.t_repetition, self.cfg.n_neurons*self.cfg.ebd_d)
         x_temporal_attn = pt.mean(x_temporal_attn, -1)
         x_temporal_attn = self.temporal_attn(x_temporal_attn)
-        x_temporal_attn = x_temporal_attn.view(self.cfg.batch_size, self.cfg.T_repetition, 1, 1)
+        x_temporal_attn = x_temporal_attn.view(self.cfg.batch_size, self.cfg.t_repetition, 1, 1)
         return x_temporal_attn
 
 class Sparsify(pt.nn.Module):
