@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Mapping
 import torch as pt
 
 from ops import *
@@ -11,7 +11,7 @@ class DynGraphLearner(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.ebd_region = RegionEmbedder(cfg)

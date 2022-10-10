@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Mapping, Optional
 import torch as pt
 import torch.nn.functional as F
 
@@ -35,7 +35,7 @@ class InceptionTC(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int,
+                 cfg: Mapping[str, Any],
                  dilation: int) -> None:
 
         super().__init__()
@@ -65,7 +65,7 @@ class ITCN(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int,
+                 cfg: Mapping[str, Any],
                  n_layers: int) -> None:
 
         super().__init__()
@@ -85,9 +85,7 @@ class RegionEmbedder(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int,
-                 act_fn: Optional[str] = 'relu',
-                 bias: Optional[bool] = True) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.input_layer = pt.nn.Linear(cfg.len_window, cfg.itcn_d)
@@ -107,9 +105,7 @@ class SpatialAttention(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int,
-                 act_fn: Optional[str] = 'relu',
-                 bias: Optional[bool] = True) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         n_neurons_ebd = int(cfg.tau*cfg.n_neurons)
@@ -127,13 +123,11 @@ class SpatialAttention(pt.nn.Module):
 class TemporalAttention(pt.nn.Module):
 
     """
-    Spatial attention
+    Temporal attention
     """
 
     def __init__(self,
-                 cfg: int,
-                 act_fn: Optional[str] = 'relu',
-                 bias: Optional[bool] = True) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.cfg = cfg
@@ -157,7 +151,7 @@ class Sparsify(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.threshold = pt.nn.parameter.Parameter(pt.full((1,), -5.0))

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Mapping
 import torch as pt
 import torch_geometric as tg
 
@@ -15,7 +15,7 @@ class DBGSLearner(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.cfg = cfg

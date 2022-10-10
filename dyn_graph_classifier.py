@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Mapping
 import torch as pt
 import torch_geometric as tg
 
@@ -12,7 +12,7 @@ class DGCLayer(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg,
+                 cfg: Mapping[str, Any],
                  input_d: int) -> None:
 
         super().__init__()
@@ -25,6 +25,7 @@ class DGCLayer(pt.nn.Module):
                 edge_index_batch: pt.Tensor,
                 edge_attr_batch: pt.Tensor,
                 batch: pt.Tensor) -> pt.Tensor:
+
         gru_output, gru_hidden = self.gru(gru_input)
         gru_output = gru_output.reshape(self.cfg.batch_size*self.cfg.t_repetition*self.cfg.n_neurons, self.cfg.gcn_d)
         out = self.gcn(gru_output, edge_index_batch, edge_attr_batch)
@@ -38,7 +39,7 @@ class DynGraphClassifier(pt.nn.Module):
     """
 
     def __init__(self,
-                 cfg: int) -> None:
+                 cfg: Mapping[str, Any]) -> None:
 
         super().__init__()
         self.cfg = cfg
@@ -51,6 +52,7 @@ class DynGraphClassifier(pt.nn.Module):
                 edge_index_batch: pt.Tensor,
                 edge_attr_batch: pt.Tensor,
                 batch: pt.Tensor) -> pt.Tensor:
+    
         for dgc_layer in self.dyn_graph_cls:
             node_features = dgc_layer(node_features, edge_index_batch, edge_attr_batch, batch)
         return node_features
